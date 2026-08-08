@@ -1,10 +1,9 @@
-package com.example.smarthomemonitor
+package com.example.smarthomemonitor // Make sure this matches your package name
 
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
@@ -14,46 +13,61 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.bumptech.glide.Glide
+import android.widget.ImageView
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var database: DatabaseReference
 
-    // Track current states locally to toggle them correctly
+    // Track states locally
     private var lightStatus = "OFF"
     private var ironStatus = "OFF"
+
+    // Multi-Switch tracking states
+    private var fanStatus = "OFF"
+    private var ffLightStatus = "OFF"
+    private var tvStatus = "OFF"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize Database
         database = FirebaseDatabase.getInstance().reference
 
-        // Find UI elements
+        // Cards
+        val cardGroundFloorLivingRoom = findViewById<CardView>(R.id.cardGroundFloorLivingRoom)
+        val cardLaundryRoom = findViewById<CardView>(R.id.cardLaundryRoom)
+        val cardFirstFloorLivingRoom = findViewById<CardView>(R.id.cardFirstFloorLivingRoom)
+        val cardFirstFloorCamera = findViewById<CardView>(R.id.cardFirstFloorCamera)
+
+        // Tab Layout & Header
         val tabLayout = findViewById<TabLayout>(R.id.tabLayoutFloors)
         val tvFloorTitle = findViewById<TextView>(R.id.tvFloorTitle)
-        val cardLaundryRoom = findViewById<CardView>(R.id.cardLaundryRoom)
 
-        val tvLightStatus = findViewById<TextView>(R.id.tvLightStatus)
-        val tvIronStatus = findViewById<TextView>(R.id.tvIronStatus)
-        val btnToggleLight = findViewById<Button>(R.id.btnToggleLight)
-        val btnToggleIron = findViewById<Button>(R.id.btnToggleIron)
-
-        // --- MULTI-FLOOR VIEW LOGIC ---
-        tvFloorTitle.text = "Ground Floor Devices"
+        // --- TAB LOGIC ---
+        // Default View: Ground Floor
+        cardGroundFloorLivingRoom.visibility = View.VISIBLE
         cardLaundryRoom.visibility = View.GONE
+        cardFirstFloorLivingRoom.visibility = View.GONE
+        cardFirstFloorCamera.visibility = View.GONE
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
-                    0 -> {
+                    0 -> { // Ground Floor
                         tvFloorTitle.text = "Ground Floor Devices"
+                        cardGroundFloorLivingRoom.visibility = View.VISIBLE
                         cardLaundryRoom.visibility = View.GONE
+                        cardFirstFloorLivingRoom.visibility = View.GONE
+                        cardFirstFloorCamera.visibility = View.GONE // Hide camera
                     }
-                    1 -> {
+                    1 -> { // First Floor
                         tvFloorTitle.text = "First Floor Devices"
+                        cardGroundFloorLivingRoom.visibility = View.GONE
                         cardLaundryRoom.visibility = View.VISIBLE
+                        cardFirstFloorLivingRoom.visibility = View.VISIBLE
+                        cardFirstFloorCamera.visibility = View.VISIBLE // Show camera
                     }
                 }
             }
@@ -61,61 +75,93 @@ class MainActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
+        // --- REAL-TIME LISTENERS & BUTTON CLICKS ---
 
-        // --- REAL-TIME LISTENERS (INBOUND) ---
-
-        // 1. Listen to Living Room Light Status
+        // 1. Ground Floor Light
+        val tvLightStatus = findViewById<TextView>(R.id.tvLightStatus)
+        val btnToggleLight = findViewById<Button>(R.id.btnToggleLight)
         val lightRef = database.child("house").child("ground_floor").child("living_room").child("light_1").child("status")
-        lightRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // Get the value from the cloud, default to "OFF" if empty
-                val status = snapshot.getValue(String::class.java) ?: "OFF"
-                lightStatus = status
 
-                // Update UI text and color reactively
-                tvLightStatus.text = "Status: $status"
-                if (status == "ON") {
-                    tvLightStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_on))
-                } else {
-                    tvLightStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_off))
-                }
-            }
+        setupDeviceListener(lightRef, tvLightStatus, "Main Light: ") { newStatus -> lightStatus = newStatus }
+        btnToggleLight.setOnClickListener { lightRef.setValue(if (lightStatus == "ON") "OFF" else "ON") }
 
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@MainActivity, "Database error: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
-
-        // 2. Listen to Laundry Iron Status
+        // 2. Laundry Room Iron
+        val tvIronStatus = findViewById<TextView>(R.id.tvIronStatus)
+        val btnToggleIron = findViewById<Button>(R.id.btnToggleIron)
         val ironRef = database.child("house").child("first_floor").child("laundry_room").child("clothing_iron").child("status")
-        ironRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val status = snapshot.getValue(String::class.java) ?: "OFF"
-                ironStatus = status
 
-                tvIronStatus.text = "Iron: $status"
-                if (status == "ON") {
-                    tvIronStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_on))
+        setupDeviceListener(ironRef, tvIronStatus, "Iron: ") { newStatus -> ironStatus = newStatus }
+        btnToggleIron.setOnClickListener { ironRef.setValue(if (ironStatus == "ON") "OFF" else "ON") }
+
+        // 3. Multi-Switch Unit: Fan, Light, TV
+        val tvFanStatus = findViewById<TextView>(R.id.tvFanStatus)
+        val btnToggleFan = findViewById<Button>(R.id.btnToggleFan)
+        val tvFfLightStatus = findViewById<TextView>(R.id.tvFfLightStatus)
+        val btnToggleFfLight = findViewById<Button>(R.id.btnToggleFfLight)
+        val tvTvStatus = findViewById<TextView>(R.id.tvTvStatus)
+        val btnToggleTv = findViewById<Button>(R.id.btnToggleTv)
+
+        // --- CAMERA REAL-TIME LISTENER ---
+        var cameraStatus = "OFF"
+        val tvCameraStatus = findViewById<TextView>(R.id.tvCameraStatus)
+        val imgCameraFeed = findViewById<ImageView>(R.id.imgCameraFeed)
+        val btnToggleCamera = findViewById<Button>(R.id.btnToggleCamera)
+
+        val cameraRef = database.child("house").child("first_floor").child("living_room").child("security_cam_1")
+
+        cameraRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                cameraStatus = snapshot.child("status").getValue(String::class.java) ?: "OFF"
+                val streamUrl = snapshot.child("stream_url").getValue(String::class.java) ?: ""
+
+                tvCameraStatus.text = "Camera: $cameraStatus"
+
+                if (cameraStatus == "ON") {
+                    tvCameraStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_on))
+                    // Use Glide to load the mock URL into the ImageView
+                    Glide.with(this@MainActivity)
+                        .load(streamUrl)
+                        .into(imgCameraFeed)
                 } else {
-                    tvIronStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_off))
+                    tvCameraStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_off))
+                    // Clear the image to simulate offline feed (just a grey background)
+                    Glide.with(this@MainActivity).clear(imgCameraFeed)
                 }
             }
 
-            override fun onCancelled(error: DatabaseError) { {} }
+            override fun onCancelled(error: DatabaseError) {}
         })
 
-
-        // --- USER INTERACTIONS (OUTBOUND) ---
-
-        // When clicked, check what the current state is and flip it to the opposite value
-        btnToggleLight.setOnClickListener {
-            val nextState = if (lightStatus == "ON") "OFF" else "ON"
-            lightRef.setValue(nextState)
+        btnToggleCamera.setOnClickListener {
+            cameraRef.child("status").setValue(if (cameraStatus == "ON") "OFF" else "ON")
         }
 
-        btnToggleIron.setOnClickListener {
-            val nextState = if (ironStatus == "ON") "OFF" else "ON"
-            ironRef.setValue(nextState)
-        }
+        val multiSwitchRef = database.child("house").child("first_floor").child("living_room").child("multi_switch_unit_1")
+
+        setupDeviceListener(multiSwitchRef.child("switch_a_fan"), tvFanStatus, "Fan: ") { newStatus -> fanStatus = newStatus }
+        btnToggleFan.setOnClickListener { multiSwitchRef.child("switch_a_fan").setValue(if (fanStatus == "ON") "OFF" else "ON") }
+
+        setupDeviceListener(multiSwitchRef.child("switch_b_light"), tvFfLightStatus, "Light: ") { newStatus -> ffLightStatus = newStatus }
+        btnToggleFfLight.setOnClickListener { multiSwitchRef.child("switch_b_light").setValue(if (ffLightStatus == "ON") "OFF" else "ON") }
+
+        setupDeviceListener(multiSwitchRef.child("switch_c_tv"), tvTvStatus, "TV: ") { newStatus -> tvStatus = newStatus }
+        btnToggleTv.setOnClickListener { multiSwitchRef.child("switch_c_tv").setValue(if (tvStatus == "ON") "OFF" else "ON") }
+    }
+
+    // A helper function to reduce repetitive code when creating Firebase listeners
+    private fun setupDeviceListener(ref: DatabaseReference, textView: TextView, prefix: String, updateLocalState: (String) -> Unit) {
+        ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val status = snapshot.getValue(String::class.java) ?: "OFF"
+                updateLocalState(status)
+                textView.text = "$prefix$status"
+                if (status == "ON") {
+                    textView.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_on))
+                } else {
+                    textView.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.status_off))
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 }
