@@ -23,6 +23,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="First Floor" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reports" />
+
     </com.google.android.material.tabs.TabLayout>
 
     <ScrollView
@@ -276,6 +282,54 @@
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
+
+                <!-- Card 5: Usage Reporting Dashboard -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cardReportingDashboard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#E3F2FD"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
+                    <!-- Note: Added a light blue background (#E3F2FD) to make it stand out -->
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📊 System Usage Report"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="12dp"/>
+
+                        <TextView
+                            android:id="@+id/tvReportLight"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Loading light data..."
+                            android:layout_marginBottom="8dp"/>
+
+                        <TextView
+                            android:id="@+id/tvReportIron"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Loading iron data..."
+                            android:layout_marginBottom="8dp"/>
+
+                        <TextView
+                            android:id="@+id/tvReportCamera"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Loading camera data..."/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
 
             </GridLayout>
         </LinearLayout>

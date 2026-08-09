@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
         val cardLaundryRoom = findViewById<CardView>(R.id.cardLaundryRoom)
         val cardFirstFloorLivingRoom = findViewById<CardView>(R.id.cardFirstFloorLivingRoom)
         val cardFirstFloorCamera = findViewById<CardView>(R.id.cardFirstFloorCamera)
+        val cardReportingDashboard = findViewById<CardView>(R.id.cardReportingDashboard)
 
         // Tab Layout & Header
         val tabLayout = findViewById<TabLayout>(R.id.tabLayoutFloors)
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         cardLaundryRoom.visibility = View.GONE
         cardFirstFloorLivingRoom.visibility = View.GONE
         cardFirstFloorCamera.visibility = View.GONE
+        cardReportingDashboard.visibility = View.GONE // Hidden by default
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -60,14 +62,24 @@ class MainActivity : AppCompatActivity() {
                         cardGroundFloorLivingRoom.visibility = View.VISIBLE
                         cardLaundryRoom.visibility = View.GONE
                         cardFirstFloorLivingRoom.visibility = View.GONE
-                        cardFirstFloorCamera.visibility = View.GONE // Hide camera
+                        cardFirstFloorCamera.visibility = View.GONE
+                        cardReportingDashboard.visibility = View.GONE
                     }
                     1 -> { // First Floor
                         tvFloorTitle.text = "First Floor Devices"
                         cardGroundFloorLivingRoom.visibility = View.GONE
                         cardLaundryRoom.visibility = View.VISIBLE
                         cardFirstFloorLivingRoom.visibility = View.VISIBLE
-                        cardFirstFloorCamera.visibility = View.VISIBLE // Show camera
+                        cardFirstFloorCamera.visibility = View.VISIBLE
+                        cardReportingDashboard.visibility = View.GONE
+                    }
+                    2 -> { // Reports Tab
+                        tvFloorTitle.text = "Analytics & Usage"
+                        cardGroundFloorLivingRoom.visibility = View.GONE
+                        cardLaundryRoom.visibility = View.GONE
+                        cardFirstFloorLivingRoom.visibility = View.GONE
+                        cardFirstFloorCamera.visibility = View.GONE
+                        cardReportingDashboard.visibility = View.VISIBLE
                     }
                 }
             }
@@ -146,6 +158,34 @@ class MainActivity : AppCompatActivity() {
 
         setupDeviceListener(multiSwitchRef.child("switch_c_tv"), tvTvStatus, "TV: ") { newStatus -> tvStatus = newStatus }
         btnToggleTv.setOnClickListener { multiSwitchRef.child("switch_c_tv").setValue(if (tvStatus == "ON") "OFF" else "ON") }
+
+        // --- REPORTS REAL-TIME LISTENER ---
+        val tvReportLight = findViewById<TextView>(R.id.tvReportLight)
+        val tvReportIron = findViewById<TextView>(R.id.tvReportIron)
+        val tvReportCamera = findViewById<TextView>(R.id.tvReportCamera)
+
+        val reportsRef = database.child("house").child("reports")
+
+        reportsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // Fetch Light Data
+                val lightToggled = snapshot.child("living_room_light").child("times_toggled").getValue(Int::class.java) ?: 0
+                val lightHours = snapshot.child("living_room_light").child("total_hours_on").getValue(Double::class.java) ?: 0.0
+                tvReportLight.text = "💡 Main Light:\n- Toggled $lightToggled times\n- $lightHours hours total usage"
+
+                // Fetch Iron Data
+                val ironToggled = snapshot.child("clothing_iron").child("times_toggled").getValue(Int::class.java) ?: 0
+                val ironCutoffs = snapshot.child("clothing_iron").child("safety_cutoffs_triggered").getValue(Int::class.java) ?: 0
+                tvReportIron.text = "🔥 Clothing Iron:\n- Used $ironToggled times\n- ⚠️ Safety cutoffs triggered: $ironCutoffs"
+
+                // Fetch Camera Data
+                val camData = snapshot.child("security_camera").child("total_data_used_gb").getValue(Double::class.java) ?: 0.0
+                tvReportCamera.text = "📷 Security Camera:\n- Total Data Used: $camData GB"
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
     }
 
     // A helper function to reduce repetitive code when creating Firebase listeners
