@@ -1,4 +1,4 @@
-package com.example.smarthomemonitor
+package com.example.smarthomeapplication
 
 import org.junit.Test
 
