@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardware Simulator Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Smart Home Hardware Simulator</h1>
+        <p>This web dashboard acts as the physical IoT devices. Toggling here updates Firebase and the Android App instantly.</p>
+    </header>
+
+    <main id="device-container">
+        <!-- Devices will be injected here by app.js -->
+        <p>Loading devices from Firebase...</p>
+    </main>
+
+    <!-- Firebase SDK (Modular v9/v10 Compat for simplicity in static HTML) -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
