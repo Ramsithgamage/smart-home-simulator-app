@@ -1,7 +1,6 @@
 package com.example.smarthomeapplication.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,19 +31,19 @@ fun FloorPlanView(
     floor: Floor,
     devices: List<Device>,
     onDeviceClick: (Device) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    // Assuming a 10x10 abstract grid over the floor plan
-    val gridSize = 10
+    val rows = floor.grid_rows.coerceAtLeast(1)
+    val cols = floor.grid_cols.coerceAtLeast(1)
 
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // Keep it square for simplicity, or adjust based on floorplan aspect ratio
+            .aspectRatio(cols.toFloat() / rows.toFloat())
             .background(Color.LightGray)
     ) {
-        val cellWidth = maxWidth / gridSize
-        val cellHeight = maxHeight / gridSize
+        val cellWidth = maxWidth / cols
+        val cellHeight = maxHeight / rows
 
         // Draw grid lines
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -52,17 +51,19 @@ fun FloorPlanView(
             val canvasHeight = size.height
             val paintColor = Color.Gray.copy(alpha = 0.3f)
             
-            for (i in 1 until gridSize) {
+            for (i in 1 until cols) {
                 // Vertical lines
-                val x = i * (canvasWidth / gridSize)
+                val x = i * (canvasWidth / cols)
                 drawLine(
                     color = paintColor,
                     start = Offset(x, 0f),
                     end = Offset(x, canvasHeight),
                     strokeWidth = 1f
                 )
+            }
+            for (i in 1 until rows) {
                 // Horizontal lines
-                val y = i * (canvasHeight / gridSize)
+                val y = i * (canvasHeight / rows)
                 drawLine(
                     color = paintColor,
                     start = Offset(0f, y),
@@ -75,8 +76,8 @@ fun FloorPlanView(
         // Place devices on grid
         devices.forEach { device ->
             // clamp to grid
-            val gx = device.grid_x.coerceIn(0, gridSize - 1)
-            val gy = device.grid_y.coerceIn(0, gridSize - 1)
+            val gx = device.grid_x.coerceIn(0, cols - 1)
+            val gy = device.grid_y.coerceIn(0, rows - 1)
 
             val iconColor = when (device.getDeviceStatus()) {
                 DeviceStatus.ON -> Color(0xFF4CAF50)

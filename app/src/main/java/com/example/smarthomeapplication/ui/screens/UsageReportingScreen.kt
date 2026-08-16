@@ -4,7 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -15,7 +15,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
 import com.example.smarthomeapplication.viewmodel.DeviceViewModel
 import kotlin.math.max
@@ -24,7 +23,7 @@ import kotlin.math.max
 @Composable
 fun UsageReportingScreen(
     viewModel: DeviceViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     val usageLogs by viewModel.usageLogs.collectAsState()
 
@@ -34,7 +33,7 @@ fun UsageReportingScreen(
                 title = { Text("Usage Reports") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -51,7 +50,7 @@ fun UsageReportingScreen(
 
             // Aggregate data: Sum of duration per event (or per device if we had device info in logs, for simplicity we plot duration)
             // Just for demonstration of the canvas chart, we'll plot the top 5 durations
-            val chartData = usageLogs.take(5).map { it.duration_mins.toFloat() }
+            val chartData = usageLogs.asSequence().take(5).map { it.duration_mins.toFloat() }.toList()
 
             if (chartData.isNotEmpty()) {
                 BarChart(data = chartData, modifier = Modifier.fillMaxWidth().height(250.dp))
@@ -70,11 +69,9 @@ fun BarChart(data: List<Float>, modifier: Modifier = Modifier) {
 
     Canvas(modifier = modifier.padding(16.dp).background(Color.White)) {
         val barWidth = size.width / (data.size * 2)
-        val spaceWidth = barWidth
-
         data.forEachIndexed { index, value ->
             val barHeight = (value / maxValue) * size.height
-            val xOffset = index * (barWidth + spaceWidth) + spaceWidth / 2
+            val xOffset = index * (barWidth * 2) + barWidth / 2
             val yOffset = size.height - barHeight
 
             drawRect(

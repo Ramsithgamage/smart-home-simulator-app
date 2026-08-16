@@ -1,79 +1,144 @@
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-main: #f1f5f9;
+    --text-dim: #94a3b8;
+    --accent-green: #22c55e;
+    --accent-red: #ef4444;
+    --grid-line: #334155;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f4f4f9;
-    color: #333;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
     margin: 0;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 header {
     text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2rem;
+    background: linear-gradient(to right, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+/* Status Bar */
+.status-bar {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
     margin-bottom: 30px;
+    background: #000;
+    transition: all 0.3s ease;
 }
 
-#device-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
+.status-bar.online { color: var(--accent-green); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+.status-bar.offline { color: var(--accent-red); }
+
+/* Floor Sections */
+.floor-section {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.device-card {
-    background: white;
+.floor-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Grid Layout */
+.grid-container {
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    background: #0f172a;
     border-radius: 8px;
-    padding: 20px;
-    width: 300px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
+    border: 1px solid var(--grid-line);
 }
 
-.device-header {
+.grid-cell {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 15px;
 }
 
-.device-name {
-    font-weight: bold;
-    font-size: 1.2em;
-}
-
-.status-indicator {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: bold;
-    color: white;
-}
-
-.status-ON { background-color: #4CAF50; }
-.status-OFF { background-color: #9E9E9E; }
-.status-ERROR { background-color: #F44336; }
-
-.toggle-btn {
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
+/* Device Styling */
+.device-wrapper {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    font-weight: bold;
-    transition: background 0.3s;
-}
-.toggle-btn.btn-ON { background-color: #4CAF50; color: white; }
-.toggle-btn.btn-OFF { background-color: #e0e0e0; color: #333; }
-
-.switch-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
 }
 
-.switch-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f9f9f9;
-    padding: 10px;
-    border-radius: 4px;
+.device-icon {
+    font-size: 20px;
+    z-index: 3;
+}
+
+.status-ON {
+    background: var(--accent-green);
+    box-shadow: 0 0 20px var(--accent-green);
+}
+
+.status-OFF {
+    background: #475569;
+}
+
+.glow-effect {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--accent-green);
+    opacity: 0.5;
+    animation: pulse 2s infinite;
+    z-index: 1;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.5; }
+    70% { transform: scale(1.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
+.device-wrapper:hover {
+    transform: scale(1.15);
+}
+
+.loading-state, .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
 }

@@ -1,100 +1,130 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// TODO: Replace this with your actual Firebase project configuration from the Firebase console
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCAbPGwchMaJXCdBl9xiKS4gnKcNkg8EDs",
+    authDomain: "smart-home-application-29aca.firebaseapp.com",
+    databaseURL: "https://smart-home-application-29aca-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    projectId: "smart-home-application-29aca",
+    storageBucket: "smart-home-application-29aca.firebasestorage.app",
+    messagingSenderId: "843437757049",
+    appId: "1:843437757049:android:4e96e18c2172f172bc7aa8"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-
 const container = document.getElementById('device-container');
 
-// Listen to changes in the "devices" node
-const devicesRef = ref(database, 'devices');
-onValue(devicesRef, (snapshot) => {
-    container.innerHTML = '';
-    const devices = snapshot.val();
-    
-    if (!devices) {
-        container.innerHTML = '<p>No devices found.</p>';
-        return;
-    }
+let floors = null;
+let devices = null;
 
-    for (const [deviceId, device] of Object.entries(devices)) {
-        const card = createDeviceCard(deviceId, device);
-        container.appendChild(card);
+// Connection Status Bar
+const statusIndicator = document.createElement('div');
+statusIndicator.className = 'status-bar';
+statusIndicator.textContent = 'Connecting...';
+document.body.insertBefore(statusIndicator, document.querySelector('header').nextSibling);
+
+onValue(ref(database, '.info/connected'), (snap) => {
+    if (snap.val() === true) {
+        statusIndicator.textContent = '● System Online';
+        statusIndicator.className = 'status-bar online';
+    } else {
+        statusIndicator.textContent = '○ System Offline';
+        statusIndicator.className = 'status-bar offline';
     }
 });
 
-function createDeviceCard(id, device) {
-    const card = document.createElement('div');
-    card.className = 'device-card';
-    
-    const header = document.createElement('div');
-    header.className = 'device-header';
-    
-    const name = document.createElement('span');
-    name.className = 'device-name';
-    name.textContent = device.name;
-    
-    const status = document.createElement('span');
-    status.className = `status-indicator status-${device.status}`;
-    status.textContent = device.status;
-    
-    header.appendChild(name);
-    header.appendChild(status);
-    card.appendChild(header);
+// Sync Data
+onValue(ref(database, 'floors'), (snapshot) => {
+    floors = snapshot.val() || {};
+    render();
+});
 
-    if (device.type === 'MULTI_SWITCH' && device.switches) {
-        const switchList = document.createElement('div');
-        switchList.className = 'switch-list';
-        for (const [switchId, s] of Object.entries(device.switches)) {
-            const swItem = document.createElement('div');
-            swItem.className = 'switch-item';
-            
-            const swName = document.createElement('span');
-            swName.textContent = s.name;
-            
-            const btn = document.createElement('button');
-            btn.className = `toggle-btn btn-${s.status}`;
-            btn.textContent = s.status === 'ON' ? 'Turn OFF' : 'Turn ON';
-            btn.onclick = () => toggleMultiSwitch(id, switchId, s.status);
-            
-            swItem.appendChild(swName);
-            swItem.appendChild(btn);
-            switchList.appendChild(swItem);
-        }
-        card.appendChild(switchList);
-    } else {
-        const btn = document.createElement('button');
-        btn.className = `toggle-btn btn-${device.status}`;
-        btn.textContent = device.status === 'ON' ? 'Turn OFF' : 'Turn ON';
-        btn.onclick = () => toggleDevice(id, device.status);
-        card.appendChild(btn);
+onValue(ref(database, 'devices'), (snapshot) => {
+    devices = snapshot.val() || {};
+    render();
+});
+
+function render() {
+    if (!floors || !devices) return;
+    container.innerHTML = '';
+
+    const floorIds = Object.keys(floors);
+    if (floorIds.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No Floors Detected</h3><p>Use the Smart Home App to add your first floor.</p></div>';
+        return;
     }
 
-    return card;
+    floorIds.forEach(floorId => {
+        const floor = floors[floorId];
+        const section = document.createElement('section');
+        section.className = 'floor-section';
+
+        const title = document.createElement('h2');
+        title.textContent = floor.name;
+        section.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'grid-container';
+
+        const rows = floor.grid_rows || 10;
+        const cols = floor.grid_cols || 10;
+
+        grid.style.gridTemplateColumns = `repeat(${cols}, 44px)`;
+        grid.style.gridTemplateRows = `repeat(${rows}, 44px)`;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+
+                const devId = Object.keys(devices).find(id =>
+                    devices[id].floor_id === floorId &&
+                    devices[id].grid_x === c && devices[id].grid_y === r
+                );
+
+                if (devId) {
+                    const dev = devices[devId];
+                    cell.appendChild(createDeviceUI(devId, dev));
+                }
+                grid.appendChild(cell);
+            }
+        }
+        section.appendChild(grid);
+        container.appendChild(section);
+    });
 }
 
-function toggleDevice(deviceId, currentStatus) {
-    const newStatus = currentStatus === 'ON' ? 'OFF' : 'ON';
-    const updates = {};
-    updates[`/devices/${deviceId}/status`] = newStatus;
-    update(ref(database), updates);
+function createDeviceUI(id, dev) {
+    const el = document.createElement('div');
+    el.className = `device-wrapper status-${dev.status}`;
+    el.title = `${dev.name} (${dev.status})`;
+
+    const icon = document.createElement('div');
+    icon.className = 'device-icon';
+    icon.textContent = getIcon(dev.type);
+    el.appendChild(icon);
+
+    if (dev.status === 'ON') {
+        const glow = document.createElement('div');
+        glow.className = 'glow-effect';
+        el.appendChild(glow);
+    }
+
+    el.onclick = () => {
+        const newStatus = dev.status === 'ON' ? 'OFF' : 'ON';
+        update(ref(database, `devices/${id}`), { status: newStatus });
+    };
+
+    return el;
 }
 
-function toggleMultiSwitch(deviceId, switchId, currentStatus) {
-    const newStatus = currentStatus === 'ON' ? 'OFF' : 'ON';
-    const updates = {};
-    updates[`/devices/${deviceId}/switches/${switchId}/status`] = newStatus;
-    update(ref(database), updates);
+function getIcon(t) {
+    const icons = {
+        'ELECTRICAL_OUTLET': '🔌',
+        'MULTI_SWITCH': '🎛️',
+        'SAFETY_DEVICE': '🛡️',
+        'SECURITY_CAMERA': '📷'
+    };
+    return icons[t] || '❓';
 }

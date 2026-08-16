@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.smarthomeapplication.data.FirebaseRepository
 import com.example.smarthomeapplication.model.Device
 import com.example.smarthomeapplication.model.DeviceStatus
+import com.example.smarthomeapplication.model.DeviceType
 import com.example.smarthomeapplication.model.Floor
 import com.example.smarthomeapplication.model.UsageLog
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,5 +60,22 @@ class DeviceViewModel : ViewModel() {
 
     fun toggleMultiSwitch(deviceId: String, switchId: String, newStatus: DeviceStatus) {
         repository.updateMultiSwitch(deviceId, switchId, newStatus)
+    }
+
+    fun addFloor(name: String, rows: Int, cols: Int) {
+        val newFloor = Floor(name = name, grid_rows = rows, grid_cols = cols)
+        repository.addFloor(newFloor)
+    }
+
+    fun addDevice(floorId: String, name: String, type: DeviceType, x: Int, y: Int) {
+        val newDevice = Device(
+            floor_id = floorId,
+            name = name,
+            type = type.name,
+            status = DeviceStatus.OFF.name,
+            grid_x = x,
+            grid_y = y
+        )
+        repository.addDevice(newDevice)
     }
 }

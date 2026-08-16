@@ -1,0 +1,91 @@
+{
+  "floors": {
+    "floor_1": {
+      "id": "floor_1",
+      "name": "Ground Floor"
+    },
+    "floor_2": {
+      "id": "floor_2",
+      "name": "First Floor"
+    }
+  },
+  "devices": {
+    "dev_1": {
+      "id": "dev_1",
+      "name": "Living Room TV Outlet",
+      "floor_id": "floor_1",
+      "type": "ELECTRICAL_OUTLET",
+      "status": "ON",
+      "grid_x": 2,
+      "grid_y": 3,
+      "metrics": {
+        "power_usage_watts": 120.5
+      }
+    },
+    "dev_2": {
+      "id": "dev_2",
+      "name": "Kitchen Main Lights",
+      "floor_id": "floor_1",
+      "type": "MULTI_SWITCH",
+      "status": "ON",
+      "grid_x": 7,
+      "grid_y": 8,
+      "switches": {
+        "sw_1": {
+          "id": "sw_1",
+          "name": "Island Light",
+          "status": "ON"
+        },
+        "sw_2": {
+          "id": "sw_2",
+          "name": "Cabinet Lights",
+          "status": "OFF"
+        }
+      }
+    },
+    "dev_3": {
+      "id": "dev_3",
+      "name": "Front Door Camera",
+      "floor_id": "floor_1",
+      "type": "SECURITY_CAMERA",
+      "status": "ON",
+      "grid_x": 9,
+      "grid_y": 0,
+      "metrics": {
+        "battery_level": 85.0
+      }
+    },
+    "dev_4": {
+      "id": "dev_4",
+      "name": "Smoke Detector",
+      "floor_id": "floor_2",
+      "type": "SAFETY_DEVICE",
+      "status": "ON",
+      "grid_x": 5,
+      "grid_y": 5,
+      "metrics": {
+        "battery_level": 99.0
+      }
+    }
+  },
+  "usage_logs": {
+    "dev_1": {
+      "log_1": {
+        "id": "log_1",
+        "device_id": "dev_1",
+        "timestamp": 1700000000000,
+        "action": "Device turned ON",
+        "duration_mins": 45
+      }
+    },
+    "dev_2": {
+      "log_2": {
+        "id": "log_2",
+        "device_id": "dev_2",
+        "timestamp": 1700003600000,
+        "action": "Island Light turned OFF",
+        "duration_mins": 120
+      }
+    }
+  }
+}

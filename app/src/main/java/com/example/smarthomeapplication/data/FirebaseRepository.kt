@@ -1,5 +1,6 @@
 package com.example.smarthomeapplication.data
 
+import android.util.Log
 import com.example.smarthomeapplication.model.Device
 import com.example.smarthomeapplication.model.DeviceStatus
 import com.example.smarthomeapplication.model.Floor
@@ -14,7 +15,34 @@ import kotlinx.coroutines.flow.callbackFlow
 
 class FirebaseRepository {
 
-    private val database = FirebaseDatabase.getInstance().reference
+    companion object {
+        private const val TAG = "FirebaseRepository"
+        private const val DB_URL = "https://smart-home-application-29aca-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    }
+
+    // Explicit URL required since google-services.json does not contain database_url
+    private val database = FirebaseDatabase.getInstance(DB_URL).reference
+
+    init {
+        monitorConnection()
+    }
+
+    private fun monitorConnection() {
+        val connectedRef = FirebaseDatabase.getInstance(DB_URL).getReference(".info/connected")
+        connectedRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val connected = snapshot.getValue(Boolean::class.java) ?: false
+                if (connected) {
+                    Log.d(TAG, "Firebase connected")
+                } else {
+                    Log.w(TAG, "Firebase disconnected")
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Connection monitor cancelled", error.toException())
+            }
+        })
+    }
 
     fun getFloors(): Flow<List<Floor>> = callbackFlow {
         val listener = object : ValueEventListener {
@@ -24,6 +52,7 @@ class FirebaseRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching floors", error.toException())
                 close(error.toException())
             }
         }
@@ -40,6 +69,7 @@ class FirebaseRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching devices for floor $floorId", error.toException())
                 close(error.toException())
             }
         }
@@ -55,6 +85,7 @@ class FirebaseRepository {
                 trySend(devices)
             }
             override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching all devices", error.toException())
                 close(error.toException())
             }
         }
@@ -76,6 +107,7 @@ class FirebaseRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error fetching usage logs", error.toException())
                 close(error.toException())
             }
         }
@@ -90,5 +122,17 @@ class FirebaseRepository {
 
     fun updateMultiSwitch(deviceId: String, switchId: String, newStatus: DeviceStatus) {
         database.child("devices").child(deviceId).child("switches").child(switchId).child("status").setValue(newStatus.name)
+    }
+
+    fun addFloor(floor: Floor) {
+        val key = database.child("floors").push().key ?: return
+        val newFloor = floor.copy(id = key)
+        database.child("floors").child(key).setValue(newFloor)
+    }
+
+    fun addDevice(device: Device) {
+        val key = database.child("devices").push().key ?: return
+        val newDevice = device.copy(id = key)
+        database.child("devices").child(key).setValue(newDevice)
     }
 }

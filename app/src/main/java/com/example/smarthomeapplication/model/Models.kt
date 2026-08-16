@@ -1,5 +1,7 @@
 package com.example.smarthomeapplication.model
 
+import com.google.firebase.database.IgnoreExtraProperties
+
 enum class DeviceStatus {
     ON, OFF, ERROR, DISCONNECTED
 }
@@ -8,17 +10,23 @@ enum class DeviceType {
     ELECTRICAL_OUTLET, MULTI_SWITCH, SAFETY_DEVICE, SECURITY_CAMERA
 }
 
+@IgnoreExtraProperties
 data class Floor(
     val id: String = "",
     val name: String = "",
-    val image_asset: String = ""
+    val image_asset: String = "",
+    val grid_rows: Int = 4,
+    val grid_cols: Int = 4
 )
 
+@IgnoreExtraProperties
 data class SwitchState(
+    val id: String = "",
     val name: String = "",
     val status: String = DeviceStatus.OFF.name
 )
 
+@IgnoreExtraProperties
 data class Device(
     val id: String = "",
     val floor_id: String = "",
@@ -27,6 +35,7 @@ data class Device(
     val type: String = DeviceType.ELECTRICAL_OUTLET.name,
     val name: String = "",
     val status: String = DeviceStatus.OFF.name,
+    val metrics: Map<String, Any>? = null,
     // Multi-Switch specific
     val switches: Map<String, SwitchState>? = null,
     // Safety Device specific
@@ -52,8 +61,11 @@ data class Device(
     }
 }
 
+@IgnoreExtraProperties
 data class UsageLog(
+    val id: String = "",
+    val device_id: String = "",
     val timestamp: Long = 0,
-    val event: String = "",
+    val action: String = "",
     val duration_mins: Int = 0
 )

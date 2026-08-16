@@ -3,21 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hardware Simulator Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Smart Home Hardware Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --grid-line: #334155;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p { color: var(--text-dim); font-size: 0.9rem; max-width: 600px; }
+
+        .status-bar {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            background: #000;
+            transition: all 0.3s ease;
+        }
+        .status-bar.online { color: var(--accent-green); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+        .status-bar.offline { color: var(--accent-red); }
+
+        .floor-section {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .floor-section h2 {
+            margin: 0 0 20px 0;
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 44px);
+            grid-template-rows: repeat(10, 44px);
+            gap: 4px;
+            padding: 8px;
+            background: #0f172a;
+            border-radius: 8px;
+            border: 1px solid var(--grid-line);
+        }
+
+        .grid-cell {
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .device-wrapper {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2;
+        }
+        .device-icon { font-size: 20px; z-index: 3; }
+        .status-ON { background: var(--accent-green); box-shadow: 0 0 20px var(--accent-green); }
+        .status-OFF { background: #475569; }
+
+        .glow-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--accent-green);
+            opacity: 0.5;
+            animation: pulse 2s infinite;
+            z-index: 1;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            70% { transform: scale(1.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .device-wrapper:hover { transform: scale(1.15); }
+        .loading-state, .empty-state { text-align: center; padding: 40px; color: var(--text-dim); }
+
+        #error-display {
+            color: var(--accent-red);
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
         <h1>Smart Home Hardware Simulator</h1>
-        <p>This web dashboard acts as the physical IoT devices. Toggling here updates Firebase and the Android App instantly.</p>
+        <p>This dashboard simulates your physical IoT devices. Toggling a device here updates the app in real-time.</p>
     </header>
 
+    <div id="status-indicator" class="status-bar offline">Connecting to Network...</div>
+    <div id="error-display"></div>
+
     <main id="device-container">
-        <!-- Devices will be injected here by app.js -->
-        <p>Loading devices from Firebase...</p>
+        <div class="loading-state">
+            <p>Initializing Smart Home Core...</p>
+        </div>
     </main>
 
-    <!-- Firebase SDK (Modular v9/v10 Compat for simplicity in static HTML) -->
-    <script type="module" src="app.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAbPGwchMaJXCdBl9xiKS4gnKcNkg8EDs",
+            authDomain: "smart-home-application-29aca.firebaseapp.com",
+            databaseURL: "https://smart-home-application-29aca-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "smart-home-application-29aca",
+            storageBucket: "smart-home-application-29aca.firebasestorage.app",
+            messagingSenderId: "843437757049",
+            appId: "1:843437757049:android:4e96e18c2172f172bc7aa8"
+        };
+
+        const container = document.getElementById('device-container');
+        const statusEl = document.getElementById('status-indicator');
+        const errorEl = document.getElementById('error-display');
+
+        function showError(msg) {
+            errorEl.textContent = "Error: " + msg;
+            errorEl.style.display = "block";
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+
+            let floors = null;
+            let devices = null;
+
+            // Connection Logic
+            onValue(ref(database, '.info/connected'), (snap) => {
+                if (snap.val() === true) {
+                    statusEl.textContent = '● System Online';
+                    statusEl.className = 'status-bar online';
+                } else {
+                    statusEl.textContent = '○ System Offline';
+                    statusEl.className = 'status-bar offline';
+                }
+            });
+
+            // Data Sync
+            onValue(ref(database, 'floors'), (snap) => {
+                floors = snap.val() || {};
+                render();
+            }, (err) => showError("Floors: " + err.message));
+
+            onValue(ref(database, 'devices'), (snap) => {
+                devices = snap.val() || {};
+                render();
+            }, (err) => showError("Devices: " + err.message));
+
+            function render() {
+                if (floors === null || devices === null) return;
+                container.innerHTML = '';
+
+                const floorIds = Object.keys(floors);
+                if (floorIds.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No Floors Detected</h3><p>Please add a floor in the Android App to begin.</p></div>';
+                    return;
+                }
+
+                floorIds.forEach(id => {
+                    const floor = floors[id];
+                    const section = document.createElement('section');
+                    section.className = 'floor-section';
+                    section.innerHTML = `<h2>${floor.name}</h2>`;
+
+                    const grid = document.createElement('div');
+                    grid.className = 'grid-container';
+
+                    for (let i = 0; i < 100; i++) {
+                        const x = i % 10;
+                        const y = Math.floor(i / 10);
+                        const cell = document.createElement('div');
+                        cell.className = 'grid-cell';
+
+                        const devId = Object.keys(devices).find(d =>
+                            devices[d].floor_id === id && devices[d].grid_x === x && devices[d].grid_y === y
+                        );
+
+                        if (devId) {
+                            const dev = devices[devId];
+                            const el = document.createElement('div');
+                            el.className = `device-wrapper status-${dev.status}`;
+                            el.title = dev.name;
+                            el.innerHTML = `<div class="device-icon">${getIcon(dev.type)}</div>`;
+                            if (dev.status === 'ON') el.innerHTML += '<div class="glow-effect"></div>';
+
+                            el.onclick = () => {
+                                const newStatus = dev.status === 'ON' ? 'OFF' : 'ON';
+                                update(ref(database, `devices/${devId}`), { status: newStatus });
+                            };
+                            cell.appendChild(el);
+                        }
+                        grid.appendChild(cell);
+                    }
+                    section.appendChild(grid);
+                    container.appendChild(section);
+                });
+            }
+
+            function getIcon(t) {
+                const icons = { 'ELECTRICAL_OUTLET': '🔌', 'MULTI_SWITCH': '🎛️', 'SAFETY_DEVICE': '🛡️', 'SECURITY_CAMERA': '📷' };
+                return icons[t] || '❓';
+            }
+
+        } catch (e) {
+            showError("Init: " + e.message);
+        }
+    </script>
 </body>
 </html>
