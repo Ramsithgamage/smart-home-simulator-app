@@ -7,7 +7,7 @@ import com.example.smarthomeapplication.model.Device
 import com.example.smarthomeapplication.model.DeviceStatus
 import com.example.smarthomeapplication.model.DeviceType
 import com.example.smarthomeapplication.model.Floor
-import com.example.smarthomeapplication.model.UsageLog
+import com.example.smarthomeapplication.model.DeviceUsageReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,12 +22,16 @@ class DeviceViewModel : ViewModel() {
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     val devices: StateFlow<List<Device>> = _devices.asStateFlow()
 
-    private val _usageLogs = MutableStateFlow<List<UsageLog>>(emptyList())
-    val usageLogs: StateFlow<List<UsageLog>> = _usageLogs.asStateFlow()
+    private val _allDevices = MutableStateFlow<List<Device>>(emptyList())
+    val allDevices: StateFlow<List<Device>> = _allDevices.asStateFlow()
+
+    private val _usageReports = MutableStateFlow<List<DeviceUsageReport>>(emptyList())
+    val usageReports: StateFlow<List<DeviceUsageReport>> = _usageReports.asStateFlow()
 
     init {
         fetchFloors()
-        fetchUsageLogs()
+        fetchUsageReports()
+        fetchAllDevices()
     }
 
     private fun fetchFloors() {
@@ -46,10 +50,18 @@ class DeviceViewModel : ViewModel() {
         }
     }
 
-    private fun fetchUsageLogs() {
+    private fun fetchUsageReports() {
         viewModelScope.launch {
-            repository.getUsageLogs().collect { logs ->
-                _usageLogs.value = logs
+            repository.getDeviceUsageReports().collect { reports ->
+                _usageReports.value = reports
+            }
+        }
+    }
+
+    private fun fetchAllDevices() {
+        viewModelScope.launch {
+            repository.getAllDevices().collect { deviceList ->
+                _allDevices.value = deviceList
             }
         }
     }
@@ -67,15 +79,7 @@ class DeviceViewModel : ViewModel() {
         repository.addFloor(newFloor)
     }
 
-    fun addDevice(floorId: String, name: String, type: DeviceType, x: Int, y: Int) {
-        val newDevice = Device(
-            floor_id = floorId,
-            name = name,
-            type = type.name,
-            status = DeviceStatus.OFF.name,
-            grid_x = x,
-            grid_y = y
-        )
-        repository.addDevice(newDevice)
+    fun addDevice(device: Device) {
+        repository.addDevice(device)
     }
 }

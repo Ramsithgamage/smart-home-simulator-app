@@ -1,5 +1,6 @@
 package com.example.smarthomeapplication.model
 
+import androidx.annotation.DrawableRes
 import com.google.firebase.database.IgnoreExtraProperties
 
 enum class DeviceStatus {
@@ -7,7 +8,15 @@ enum class DeviceStatus {
 }
 
 enum class DeviceType {
-    ELECTRICAL_OUTLET, MULTI_SWITCH, SAFETY_DEVICE, SECURITY_CAMERA
+    OUTLET, MULTI_SWITCH, SAFETY_APPLIANCE, SCHEDULED_APPLIANCE, CAMERA
+}
+
+sealed class SmartDevice {
+    data class Outlet(val state: Boolean) : SmartDevice()
+    data class MultiSwitch(val states: List<Boolean>) : SmartDevice()
+    data class SafetyAppliance(val maxOnDuration: Int) : SmartDevice()
+    data class ScheduledAppliance(val startTime: String, val endTime: String) : SmartDevice()
+    data class Camera(@DrawableRes val resourceId: Int) : SmartDevice()
 }
 
 @IgnoreExtraProperties
@@ -32,17 +41,20 @@ data class Device(
     val floor_id: String = "",
     val grid_x: Int = 0,
     val grid_y: Int = 0,
-    val type: String = DeviceType.ELECTRICAL_OUTLET.name,
+    val type: String = DeviceType.OUTLET.name,
     val name: String = "",
     val status: String = DeviceStatus.OFF.name,
     val metrics: Map<String, Any>? = null,
     // Multi-Switch specific
     val switches: Map<String, SwitchState>? = null,
-    // Safety Device specific
+    // Safety Appliance specific
     val max_on_duration_mins: Int? = null,
     val last_turned_on: Long? = null,
-    // Security Camera specific
-    val stream_url: String? = null
+    // Scheduled Appliance specific
+    val start_time: String? = null,
+    val end_time: String? = null,
+    // Camera specific
+    val resource_id: Int? = null
 ) {
     fun getDeviceStatus(): DeviceStatus {
         return try {
@@ -56,16 +68,14 @@ data class Device(
         return try {
             DeviceType.valueOf(type)
         } catch (e: Exception) {
-            DeviceType.ELECTRICAL_OUTLET
+            DeviceType.OUTLET
         }
     }
 }
 
 @IgnoreExtraProperties
-data class UsageLog(
-    val id: String = "",
+data class DeviceUsageReport(
     val device_id: String = "",
-    val timestamp: Long = 0,
-    val action: String = "",
-    val duration_mins: Int = 0
+    val safety_cutoffs_triggered: Int = 0,
+    val total_data_used_gb: Double = 0.0
 )

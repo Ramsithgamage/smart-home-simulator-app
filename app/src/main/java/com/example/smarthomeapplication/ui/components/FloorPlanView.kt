@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ fun FloorPlanView(
     floor: Floor,
     devices: List<Device>,
     onDeviceClick: (Device) -> Unit,
+    onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rows = floor.grid_rows.coerceAtLeast(1)
@@ -45,31 +47,22 @@ fun FloorPlanView(
         val cellWidth = maxWidth / cols
         val cellHeight = maxHeight / rows
 
-        // Draw grid lines
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-            val paintColor = Color.Gray.copy(alpha = 0.3f)
-            
-            for (i in 1 until cols) {
-                // Vertical lines
-                val x = i * (canvasWidth / cols)
-                drawLine(
-                    color = paintColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, canvasHeight),
-                    strokeWidth = 1f
-                )
-            }
-            for (i in 1 until rows) {
-                // Horizontal lines
-                val y = i * (canvasHeight / rows)
-                drawLine(
-                    color = paintColor,
-                    start = Offset(0f, y),
-                    end = Offset(canvasWidth, y),
-                    strokeWidth = 1f
-                )
+        // Draw Chessboard Pattern and handle cell clicks
+        Column {
+            for (r in 0 until rows) {
+                Row {
+                    for (c in 0 until cols) {
+                        val isDark = (r + c) % 2 != 0
+                        val cellColor = if (isDark) Color.Gray.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f)
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(cellWidth, cellHeight)
+                                .background(cellColor)
+                                .clickable { onCellClick(c, r) }
+                        )
+                    }
+                }
             }
         }
 
@@ -87,10 +80,11 @@ fun FloorPlanView(
             }
 
             val iconData = when (device.getDeviceTypeEnum()) {
-                DeviceType.ELECTRICAL_OUTLET -> Icons.Default.Power
+                DeviceType.OUTLET -> Icons.Default.Power
                 DeviceType.MULTI_SWITCH -> Icons.Default.Lightbulb
-                DeviceType.SAFETY_DEVICE -> Icons.Default.Warning
-                DeviceType.SECURITY_CAMERA -> Icons.Default.CameraAlt
+                DeviceType.SAFETY_APPLIANCE -> Icons.Default.Warning
+                DeviceType.SCHEDULED_APPLIANCE -> Icons.Default.Schedule
+                DeviceType.CAMERA -> Icons.Default.CameraAlt
             }
 
             Box(

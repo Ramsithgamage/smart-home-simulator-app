@@ -76,7 +76,8 @@ function render() {
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const cell = document.createElement('div');
-                cell.className = 'grid-cell';
+                const isDark = (r + c) % 2 !== 0;
+                cell.className = `grid-cell ${isDark ? 'dark' : 'light'}`;
 
                 const devId = Object.keys(devices).find(id =>
                     devices[id].floor_id === floorId &&

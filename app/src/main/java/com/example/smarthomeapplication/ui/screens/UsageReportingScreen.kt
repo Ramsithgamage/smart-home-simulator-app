@@ -1,23 +1,20 @@
 package com.example.smarthomeapplication.ui.screens
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.smarthomeapplication.viewmodel.DeviceViewModel
-import kotlin.math.max
+import com.example.smarthomeapplication.model.DeviceType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,14 +22,30 @@ fun UsageReportingScreen(
     viewModel: DeviceViewModel,
     onBackClick: () -> Unit,
 ) {
-    val usageLogs by viewModel.usageLogs.collectAsState()
+    var selectedFloorId by remember { mutableStateOf<String?>(null) }
+    val floors by viewModel.floors.collectAsState()
+    val allDevices by viewModel.allDevices.collectAsState()
+    val usageReports by viewModel.usageReports.collectAsState()
+
+    val handleBack = {
+        if (selectedFloorId != null) {
+            selectedFloorId = null
+        } else {
+            onBackClick()
+        }
+    }
+
+    // Handle system back button
+    BackHandler(onBack = handleBack)
+
+    val selectedFloorName = floors.find { it.id == selectedFloorId }?.name ?: "Usage Reports"
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Usage Reports") },
+                title = { Text(selectedFloorName) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = handleBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -43,60 +56,94 @@ fun UsageReportingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
         ) {
-            Text("Device Usage Duration (Minutes)", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Aggregate data: Sum of duration per event (or per device if we had device info in logs, for simplicity we plot duration)
-            // Just for demonstration of the canvas chart, we'll plot the top 5 durations
-            val chartData = usageLogs.asSequence().take(5).map { it.duration_mins.toFloat() }.toList()
-
-            if (chartData.isNotEmpty()) {
-                BarChart(data = chartData, modifier = Modifier.fillMaxWidth().height(250.dp))
+            if (selectedFloorId == null) {
+                FloorListView(
+                    floors = floors,
+                    onFloorClick = { selectedFloorId = it.id }
+                )
             } else {
-                Box(modifier = Modifier.fillMaxWidth().height(250.dp), contentAlignment = Alignment.Center) {
-                    Text("No usage logs available")
+                val filteredReports = remember(selectedFloorId, usageReports, allDevices) {
+                    val devicesInFloor = allDevices.filter { it.floor_id == selectedFloorId }
+                    val deviceIdsInFloor = devicesInFloor.map { it.id }.toSet()
+                    
+                    usageReports.filter { report ->
+                        report.device_id in deviceIdsInFloor && (
+                            report.safety_cutoffs_triggered > 0 || report.total_data_used_gb > 0.0
+                        )
+                    }.mapNotNull { report ->
+                        val device = devicesInFloor.find { it.id == report.device_id }
+                        if (device != null) {
+                            device to report
+                        } else null
+                    }
                 }
+
+                ReportListView(reports = filteredReports)
             }
         }
     }
 }
 
 @Composable
-fun BarChart(data: List<Float>, modifier: Modifier = Modifier) {
-    val maxValue = max(data.maxOrNull() ?: 0f, 10f) // Prevent divide by zero
-
-    Canvas(modifier = modifier.padding(16.dp).background(Color.White)) {
-        val barWidth = size.width / (data.size * 2)
-        data.forEachIndexed { index, value ->
-            val barHeight = (value / maxValue) * size.height
-            val xOffset = index * (barWidth * 2) + barWidth / 2
-            val yOffset = size.height - barHeight
-
-            drawRect(
-                color = Color(0xFF2196F3),
-                topLeft = Offset(xOffset, yOffset),
-                size = Size(barWidth, barHeight)
+fun FloorListView(
+    floors: List<com.example.smarthomeapplication.model.Floor>,
+    onFloorClick: (com.example.smarthomeapplication.model.Floor) -> Unit
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(floors) { floor ->
+            ListItem(
+                headlineContent = { Text(floor.name) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onFloorClick(floor) }
             )
-            
-            // Draw value text
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.BLACK
-                    textSize = 32f
-                    textAlign = android.graphics.Paint.Align.CENTER
+            HorizontalDivider()
+        }
+    }
+}
+
+@Composable
+fun ReportListView(
+    reports: List<Pair<com.example.smarthomeapplication.model.Device, com.example.smarthomeapplication.model.DeviceUsageReport>>
+) {
+    if (reports.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No reports for this floor")
+        }
+    } else {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(reports) { (device, report) ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(text = device.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    when (device.getDeviceTypeEnum()) {
+                        DeviceType.SAFETY_APPLIANCE -> {
+                            Text(
+                                text = "Safety cutoffs triggered: ${report.safety_cutoffs_triggered} times",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        DeviceType.CAMERA -> {
+                            Text(
+                                text = "Total data used: ${String.format("%.2f", report.total_data_used_gb)} GB",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        else -> {
+                            // Should not happen based on filtering logic
+                        }
+                    }
                 }
-                drawText(value.toInt().toString(), xOffset + barWidth / 2, yOffset - 10f, paint)
+                HorizontalDivider()
             }
         }
-        
-        // Draw X axis
-        drawLine(
-            color = Color.Black,
-            start = Offset(0f, size.height),
-            end = Offset(size.width, size.height),
-            strokeWidth = 2f
-        )
     }
 }

@@ -246,7 +246,14 @@
             }
 
             function getIcon(t) {
-                const icons = { 'ELECTRICAL_OUTLET': '🔌', 'MULTI_SWITCH': '🎛️', 'SAFETY_DEVICE': '🛡️', 'SECURITY_CAMERA': '📷' };
+                // Mapping device types to suitable emojis
+                const icons = {
+                    'OUTLET': '🔌',
+                    'MULTI_SWITCH': '🎛️',
+                    'SAFETY_APPLIANCE': '🛡️',
+                    'CAMERA': '📷',
+                    'SCHEDULED_APPLIANCE': '⏰'
+                };
                 return icons[t] || '❓';
             }
 

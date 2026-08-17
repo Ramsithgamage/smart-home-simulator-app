@@ -81,11 +81,18 @@ header p {
 .grid-cell {
     width: 44px;
     height: 44px;
-    background: rgba(255,255,255,0.02);
     border-radius: 4px;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.grid-cell.light {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.grid-cell.dark {
+    background: rgba(0, 0, 0, 0.2);
 }
 
 /* Device Styling */

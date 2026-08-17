@@ -4,7 +4,7 @@ import android.util.Log
 import com.example.smarthomeapplication.model.Device
 import com.example.smarthomeapplication.model.DeviceStatus
 import com.example.smarthomeapplication.model.Floor
-import com.example.smarthomeapplication.model.UsageLog
+import com.example.smarthomeapplication.model.DeviceUsageReport
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -94,20 +94,25 @@ class FirebaseRepository {
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    fun getUsageLogs(): Flow<List<UsageLog>> = callbackFlow {
+    fun getDeviceUsageReports(): Flow<List<DeviceUsageReport>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val logs = mutableListOf<UsageLog>()
+                val reports = mutableListOf<DeviceUsageReport>()
                 for (deviceSnapshot in snapshot.children) {
-                    val deviceLogs = deviceSnapshot.children.mapNotNull { it.getValue(UsageLog::class.java) }
-                    logs.addAll(deviceLogs)
+                    try {
+                        val report = deviceSnapshot.getValue(DeviceUsageReport::class.java)
+                        if (report != null) {
+                            reports.add(report.copy(device_id = deviceSnapshot.key ?: ""))
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing report at ${deviceSnapshot.ref}", e)
+                    }
                 }
-                logs.sortByDescending { it.timestamp }
-                trySend(logs)
+                trySend(reports)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Error fetching usage logs", error.toException())
+                Log.e(TAG, "Error fetching usage reports", error.toException())
                 close(error.toException())
             }
         }
