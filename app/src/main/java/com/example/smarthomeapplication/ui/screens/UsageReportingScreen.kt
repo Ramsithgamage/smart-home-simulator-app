@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.smarthomeapplication.viewmodel.DeviceViewModel
 import com.example.smarthomeapplication.model.DeviceType
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +49,12 @@ fun UsageReportingScreen(
                     IconButton(onClick = handleBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { padding ->
@@ -69,7 +75,10 @@ fun UsageReportingScreen(
                     
                     usageReports.filter { report ->
                         report.device_id in deviceIdsInFloor && (
-                            report.safety_cutoffs_triggered > 0 || report.total_data_used_gb > 0.0
+                            report.safety_cutoffs_triggered > 0 || 
+                            report.total_data_used_gb > 0.0 ||
+                            report.total_usage_time_ms > 0 ||
+                            report.last_turn_on_timestamp != null
                         )
                     }.mapNotNull { report ->
                         val device = devicesInFloor.find { it.id == report.device_id }
@@ -137,6 +146,9 @@ fun ReportListView(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
+                        DeviceType.OUTLET -> {
+                            OutletUsageText(report)
+                        }
                         else -> {
                             // Should not happen based on filtering logic
                         }
@@ -146,4 +158,38 @@ fun ReportListView(
             }
         }
     }
+}
+
+@Composable
+fun OutletUsageText(report: com.example.smarthomeapplication.model.DeviceUsageReport) {
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    
+    // Update time every 10 seconds for real-time reporting
+    LaunchedEffect(report.last_turn_on_timestamp) {
+        if (report.last_turn_on_timestamp != null) {
+            while (true) {
+                delay(10000)
+                currentTime = System.currentTimeMillis()
+            }
+        }
+    }
+
+    val totalMs = if (report.last_turn_on_timestamp != null) {
+        val currentSession = currentTime - report.last_turn_on_timestamp
+        report.total_usage_time_ms + currentSession
+    } else {
+        report.total_usage_time_ms
+    }
+
+    // Log the values to debug
+    android.util.Log.d("UsageReportingScreen", "Device: ${report.device_id}, totalMs: $totalMs, report.total_usage_time_ms: ${report.total_usage_time_ms}")
+
+    val hours = totalMs / (1000 * 60 * 60)
+    val minutes = (totalMs % (1000 * 60 * 60)) / (1000 * 60)
+
+    Text(
+        text = "Total used time: ${hours}h ${minutes}m",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.tertiary
+    )
 }

@@ -8,6 +8,7 @@ import com.example.smarthomeapplication.model.DeviceUsageReport
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -123,6 +124,33 @@ class FirebaseRepository {
 
     fun updateDeviceStatus(deviceId: String, newStatus: DeviceStatus) {
         database.child("devices").child(deviceId).child("status").setValue(newStatus.name)
+        
+        // Handle usage time tracking for OUTLETS
+        val logRef = database.child("usage_logs").child(deviceId)
+        if (newStatus == DeviceStatus.ON) {
+            logRef.child("last_turn_on_timestamp").setValue(ServerValue.TIMESTAMP)
+        } else if (newStatus == DeviceStatus.OFF) {
+            logRef.child("last_turn_on_timestamp").get().addOnSuccessListener { snapshot ->
+                val startTime = snapshot.getValue(Long::class.java)
+                if (startTime != null) {
+                    val duration = System.currentTimeMillis() - startTime
+                    if (duration > 0) {
+                        logRef.child("total_usage_time_ms").runTransaction(object : com.google.firebase.database.Transaction.Handler {
+                            override fun doTransaction(currentData: com.google.firebase.database.MutableData): com.google.firebase.database.Transaction.Result {
+                                val currentTotal = currentData.getValue(Long::class.java) ?: 0L
+                                currentData.value = currentTotal + duration
+                                return com.google.firebase.database.Transaction.success(currentData)
+                            }
+                            override fun onComplete(error: com.google.firebase.database.DatabaseError?, committed: Boolean, snapshot: com.google.firebase.database.DataSnapshot?) {
+                                logRef.child("last_turn_on_timestamp").removeValue()
+                            }
+                        })
+                    } else {
+                        logRef.child("last_turn_on_timestamp").removeValue()
+                    }
+                }
+            }
+        }
     }
 
     fun updateMultiSwitch(deviceId: String, switchId: String, newStatus: DeviceStatus) {

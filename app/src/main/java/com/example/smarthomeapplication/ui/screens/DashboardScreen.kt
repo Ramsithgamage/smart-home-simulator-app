@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.smarthomeapplication.model.Floor
 import com.example.smarthomeapplication.viewmodel.DeviceViewModel
@@ -25,15 +26,28 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Smart Home Dashboard") })
+            TopAppBar(
+                title = { Text("Smart Home Dashboard") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
         },
         floatingActionButton = {
             Column {
-                FloatingActionButton(onClick = onViewReportsClick) {
+                FloatingActionButton(
+                    onClick = onViewReportsClick,
+                    containerColor = MaterialTheme.colorScheme.secondary
+                ) {
                     Text("Reports")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                FloatingActionButton(onClick = { showAddFloorDialog = true }) {
+                FloatingActionButton(
+                    onClick = { showAddFloorDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Floor")
                 }
             }
@@ -130,11 +144,17 @@ fun FloorCard(floor: Floor, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = floor.name, style = MaterialTheme.typography.titleLarge)
-            Text(text = "ID: ${floor.id}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = floor.name,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

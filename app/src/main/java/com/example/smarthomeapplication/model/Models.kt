@@ -57,6 +57,10 @@ data class Device(
     val resource_id: Int? = null
 ) {
     fun getDeviceStatus(): DeviceStatus {
+        if (getDeviceTypeEnum() == DeviceType.MULTI_SWITCH) {
+            val anyOn = switches?.values?.any { it.status == DeviceStatus.ON.name } ?: false
+            if (anyOn) return DeviceStatus.ON
+        }
         return try {
             DeviceStatus.valueOf(status)
         } catch (e: Exception) {
@@ -77,5 +81,8 @@ data class Device(
 data class DeviceUsageReport(
     val device_id: String = "",
     val safety_cutoffs_triggered: Int = 0,
-    val total_data_used_gb: Double = 0.0
+    val total_data_used_gb: Double = 0.0,
+    val total_usage_time_ms: Long = 0,
+    val total_hours_on: Double = 0.0,
+    val last_turn_on_timestamp: Long? = null
 )

@@ -96,25 +96,48 @@ function render() {
     });
 }
 
+function getDerivedStatus(dev) {
+    if (dev.type === 'MULTI_SWITCH' && dev.switches) {
+        // Convert map to array and check for any 'ON' status
+        const switchList = Object.values(dev.switches);
+        const anyOn = switchList.some(s => s.status === 'ON');
+        return anyOn ? 'ON' : 'OFF';
+    }
+    return dev.status;
+}
+
 function createDeviceUI(id, dev) {
+    const status = getDerivedStatus(dev);
     const el = document.createElement('div');
-    el.className = `device-wrapper status-${dev.status}`;
-    el.title = `${dev.name} (${dev.status})`;
+    el.className = `device-wrapper status-${status}`;
+    el.title = `${dev.name} (${status})`;
 
     const icon = document.createElement('div');
     icon.className = 'device-icon';
     icon.textContent = getIcon(dev.type);
     el.appendChild(icon);
 
-    if (dev.status === 'ON') {
+    if (status === 'ON') {
         const glow = document.createElement('div');
         glow.className = 'glow-effect';
         el.appendChild(glow);
     }
 
     el.onclick = () => {
-        const newStatus = dev.status === 'ON' ? 'OFF' : 'ON';
-        update(ref(database, `devices/${id}`), { status: newStatus });
+        if (dev.type === 'MULTI_SWITCH') {
+             // For multi-switch, clicking the master icon toggles ALL switches
+             const newStatus = status === 'ON' ? 'OFF' : 'ON';
+             const updates = {};
+             if (dev.switches) {
+                 Object.keys(dev.switches).forEach(key => {
+                     updates[`devices/${id}/switches/${key}/status`] = newStatus;
+                 });
+             }
+             update(ref(database), updates);
+        } else {
+            const newStatus = status === 'ON' ? 'OFF' : 'ON';
+            update(ref(database, `devices/${id}`), { status: newStatus });
+        }
     };
 
     return el;
@@ -122,10 +145,11 @@ function createDeviceUI(id, dev) {
 
 function getIcon(t) {
     const icons = {
-        'ELECTRICAL_OUTLET': '🔌',
+        'OUTLET': '🔌',
         'MULTI_SWITCH': '🎛️',
-        'SAFETY_DEVICE': '🛡️',
-        'SECURITY_CAMERA': '📷'
+        'SAFETY_APPLIANCE': '🛡️',
+        'SCHEDULED_APPLIANCE': '📅',
+        'CAMERA': '📷'
     };
     return icons[t] || '❓';
 }

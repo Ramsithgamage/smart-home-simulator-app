@@ -47,15 +47,24 @@ fun InteractiveFloorScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { 
-                initialX = 0
-                initialY = 0
-                showAddDeviceDialog = true 
-            }) {
+            FloatingActionButton(
+                onClick = { 
+                    initialX = 0
+                    initialY = 0
+                    showAddDeviceDialog = true 
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Device")
             }
         }

@@ -42,7 +42,7 @@ fun FloorPlanView(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(cols.toFloat() / rows.toFloat())
-            .background(Color.LightGray)
+            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
     ) {
         val cellWidth = maxWidth / cols
         val cellHeight = maxHeight / rows
@@ -53,7 +53,11 @@ fun FloorPlanView(
                 Row {
                     for (c in 0 until cols) {
                         val isDark = (r + c) % 2 != 0
-                        val cellColor = if (isDark) Color.Gray.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f)
+                        val cellColor = if (isDark) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        } else {
+                            Color.White.copy(alpha = 0.7f)
+                        }
                         
                         Box(
                             modifier = Modifier

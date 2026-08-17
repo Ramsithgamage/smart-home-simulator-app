@@ -143,10 +143,7 @@ fun CameraControls(device: Device, onToggle: (DeviceStatus) -> Unit) {
     val cameraFrames = listOf(
         R.drawable.camera_frame_1,
         R.drawable.camera_frame_2,
-        R.drawable.camera_frame_3,
-        R.drawable.camera_frame_4,
-        R.drawable.camera_frame_5,
-        R.drawable.camera_frame_6
+        R.drawable.camera_frame_3
     )
     var currentFrameIndex by remember { mutableIntStateOf(0) }
 
